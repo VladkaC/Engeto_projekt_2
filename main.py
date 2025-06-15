@@ -11,7 +11,11 @@ import textwrap
 
 SEPARATOR = "-" * 45
 
+
 def format_time(seconds):
+    """
+    Converts time in seconds to a human-readable string format.
+    """
     minutes = int(seconds // 60)
     sec = seconds % 60
     if minutes > 0:
@@ -19,13 +23,22 @@ def format_time(seconds):
     else:
         return f"{sec:.2f} s"
     
-def generate_random_number():
-    numbers = random.sample(range(0, 9), 4)
+
+def generate_secret_number():
+    """
+    Generates a 4-digit number with unique digits that does not start with 0.
+    """
+    numbers = random.sample(range(0, 10), 4)
     if numbers[0] == 0:
          numbers[0], numbers[1] = numbers[1], numbers[0]
     return numbers
 
+
 def validate_input(user_input):
+    """
+    Validates user input to ensure it is a 4-digit number with unique digits and doesn't start with 0.
+    Returns None if valid, otherwise an error message string.
+    """
     if not user_input.isdigit():
         return "Input must contain only digits."
     elif len(user_input) != 4:
@@ -36,75 +49,98 @@ def validate_input(user_input):
         return "Digits must be unique."
     return None
 
-def compare_numbers (random_numbers, user_numbers):
-    str_user_numbers = str(user_numbers)
+
+def compare_numbers(random_numbers, user_input):
+    """
+    Compares the secret number and user's input.
+    Returns the number of bulls (correct digit & position) and cows (correct digit, wrong position).
+    """
     bulls = 0
     cows = 0
-    i = 0
-    for number in random_numbers:
-        if str(number) == str_user_numbers[i]:
+
+    for i, number in enumerate(random_numbers):
+        if str(number) == user_input[i]:
             bulls += 1
-        elif str(number) in str_user_numbers:
-            cows += 1    
-        i +=  1
+        elif str(number) in user_input:
+            cows += 1
+
     return bulls, cows
 
-def play_game():
-    guesses = 0
+
+def play_game(input_function=input, output_function=print):
+    """
+    Runs one round of the Bulls and Cows game.
+    Returns the number of guesses the player took.
+    """
+    num_guesses = 0
     start = time.time()
-    four_random_numbers = generate_random_number()
+    secret_number = generate_secret_number()
 
     while True:
-        user_numbers = input(">>>") 
-        validation_error = validate_input(user_numbers)
-        guesses += 1
-        if validation_error:
-            print(validation_error)
-            continue
+        user_input = input_function(">>> ") 
+        validation_error = validate_input(user_input)
         
-        bulls, cows = compare_numbers(four_random_numbers, user_numbers)
+        if validation_error:
+            output_function(validation_error)
+            continue
+
+        num_guesses += 1
+
+        bulls, cows = compare_numbers(secret_number, user_input)
 
         if bulls == 4:
             end = time.time()
-            second = end - start
-            message = f"""
-                >>>{user_numbers}
+            elapsed_time = end - start
+            victory_message = f"""
+                >>> {user_input}
                 Correct, you've guessed the right number
-                in {guesses} guesses!
+                in {num_guesses} guesses!
                 {SEPARATOR}
                 That's amazing!
-                The game took {format_time(second)}
+                The game took {format_time(elapsed_time)}
             """
-            print(textwrap.dedent(message))
+            output_function(textwrap.dedent(victory_message))
             break        
         else:
-            print(f">>>{user_numbers}\n{bulls} bulls, {cows} cows\n")
-            print(SEPARATOR)     
-    return guesses   
+            output_function(f">>> {user_input}\n"
+                  f"{bulls} bull{'s' if bulls != 1 else ''}, "
+                  f"{cows} cow{'s' if cows != 1 else ''}\n")
+            output_function(SEPARATOR)     
+    return num_guesses   
 
-print(textwrap.dedent(f"""
-Hi there!
-{SEPARATOR}
-I've generated a random 4 digit number for you.
-Let's play a bulls and cows game.
-{SEPARATOR}
-Enter a number:"""))
 
-statistics = []
+def main(input_function=input, output_function=print):
+    """
+    Main loop of the game. Handles multiple rounds and final statistics.
+    """
+    output_function(textwrap.dedent(f"""
+    Hi there!
+    {SEPARATOR}
+    I've generated a random 4-digit number for you.
+    Let's play a Bulls and Cows game.
+    {SEPARATOR}
+    Enter a number:"""))
 
-while True:
-    guess = play_game()
-    statistics.append(guess)
+    statistics = []
 
-    again = input("Do you want to play again? (yes): ")
+    while True:
+        guesses = play_game(input_function=input_function, output_function=output_function)
+        statistics.append(guesses)
 
-    if again.lower() != "yes":
-        break
-         
-print("\nGame statistics:\n" + SEPARATOR)
-for i, guess in enumerate(statistics, 1):
-    print(f"Game {i:>2}: {guess} guesses")
-print(SEPARATOR)
-print(f"Best result : {min(statistics)} attempts")
-print(f"Average     : {sum(statistics) / len(statistics):.2f} attempts")
+        play_again = input_function("Do you want to play again? (yes): ")
+        if play_again.lower() != "yes":
+            break
 
+    # Show summary
+    output_function("\n" + SEPARATOR + "\nGame statistics:\n" + SEPARATOR)
+    for i, guesses in enumerate(statistics, 1):
+        output_function(f"Game {i:>2}: {guesses} guesses")
+    output_function(SEPARATOR)
+    output_function(f"Best result : {min(statistics)} attempts")
+    output_function(
+        f"Average     : {sum(statistics) / len(statistics):.2f} attempts"
+        )
+
+
+if __name__ == "__main__":
+    main()
